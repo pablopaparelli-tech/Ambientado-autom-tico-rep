@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ titulo }}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm;
+          @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 8pt; color: #666; } }
+  :root { --verde: #1a7f3c; --gris: #555; --borde: #d9d9d9; }
+  body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; color: #222; margin: 0 auto; max-width: 1050px; padding: 0 16px; background: #fff; }
+  h1 { font-size: 17pt; color: var(--verde); margin: 18px 0 4px; }
+  h2 { font-size: 13pt; color: var(--verde); border-bottom: 2px solid var(--verde); padding-bottom: 3px; margin-top: 26px; }
+  h3 { font-size: 11pt; margin: 14px 0 6px; }
+  .meta { color: var(--gris); font-size: 9pt; margin-bottom: 10px; }
+  .tabla { border-collapse: collapse; width: 100%; font-size: 8.5pt; margin: 6px 0 12px; }
+  .tabla th { background: #eef5ef; text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--borde); }
+  .tabla td { padding: 3px 6px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  img { max-width: 100%; }
+  .grilla figure { display: inline-block; width: 48.5%; margin: 0 0 8px 0; vertical-align: top; page-break-inside: avoid; }
+  figcaption { font-size: 8.5pt; color: var(--gris); text-align: center; }
+  .nota { font-size: 8.5pt; color: var(--gris); }
+  .desc { border-left: 6px solid; padding: 4px 10px; margin: 6px 0; background: #fafafa; page-break-inside: avoid; }
+  .salto { page-break-before: always; }
+  .anexo { font-size: 9pt; }
+  .anexo table { border-collapse: collapse; font-size: 8.5pt; }
+  .anexo td, .anexo th { border: 1px solid var(--borde); padding: 3px 5px; }
+  @media (max-width: 700px) { .grilla figure { width: 100%; } .tabla { display: block; overflow-x: auto; } }
+</style>
+</head>
+<body>
+
+<h1>{{ titulo }}</h1>
+<div class="meta">Fecha: {{ fecha }}{% if analista %} · Analista: {{ analista }}{% endif %} · Superficie del lote: {{ "%.1f"|format(sup_lote) }} ha · Ambientes: {{ k }}</div>
+
+<h2>1. Mapa de ambientes</h2>
+<img src="data:image/png;base64,{{ mapa_ambientes }}" alt="Mapa de ambientes">
+{{ tabla_superficies }}
+<p class="nota">Ambiente 1 = mayor potencial productivo. Criterio de ordenamiento: {{ criterio }}.
+Polígonos generalizados con unidad mínima de mapeo de {{ cfg.umm_ha }} ha y validación topológica (sección 8).</p>
+
+<h2>2. Metodología</h2>
+<p>Se integraron índices espectrales Sentinel-2 (NDVI, NDMI y clorofila red-edge CIre) de fechas
+seleccionadas sin nubes ni sombras sobre el lote, resumidos en su promedio temporal y su coeficiente de
+variación temporal, junto con altimetría (Copernicus DEM GLO-30), índice de posición topográfica
+(radio {{ cfg.tpi_radio_m|int }} m), frecuencia histórica de anegamiento (Landsat 5/8/9) y, cuando estuvo disponible,
+rendimiento relativo de monitores de cosecha. Todas las capas se corregistraron a una grilla común de
+{{ cfg.resolucion_m|int }} m (remuestreo bilineal) y se normalizaron dentro del lote. Los ambientes se delimitaron por
+k-means con selección automática del número de grupos (codo, silueta, Calinski-Harabasz y Davies-Bouldin),
+se ordenaron por potencial productivo y se convirtieron a polígonos suavizados respetando las reglas
+topológicas. El detalle completo está en el <a href="#anexo">Anexo metodológico</a>
+y en <a href="{{ url_metodologia }}">{{ url_metodologia }}</a>.</p>
+
+<h2>3. Variables utilizadas</h2>
+{{ tabla_variables }}
+
+<h2>4. Información de base</h2>
+<h3>4.1 Imágenes satelitales y cultivos</h3>
+{{ tabla_imagenes }}
+{% if tabla_rendimiento %}
+<h3>4.2 Mapas de rendimiento</h3>
+{{ tabla_rendimiento }}
+{% endif %}
+
+<h2 class="salto">5. Mapas de variables (valores en magnitud)</h2>
+<div class="grilla">
+{% for c in capas %}
+<figure><img src="data:image/png;base64,{{ c.img }}" alt="{{ c.titulo }}"><figcaption>{{ c.titulo }}</figcaption></figure>
+{% endfor %}
+</div>
+{% if serie_anegamiento %}
+<img src="data:image/png;base64,{{ serie_anegamiento }}" alt="Serie de anegamiento">
+{% endif %}
+
+<h2 class="salto">6. Delimitación</h2>
+<h3>6.1 Número de ambientes</h3>
+{% if fig_k %}<img src="data:image/png;base64,{{ fig_k }}" alt="Selección de k">{% endif %}
+<p class="nota">Votos: codo k={{ votos.codo }}, silueta k={{ votos.silueta }},
+Calinski-Harabasz k={{ votos.calinski_harabasz }}, Davies-Bouldin k={{ votos.davies_bouldin }}.
+Número de ambientes adoptado: {{ k }}.</p>
+{{ tabla_k }}
+<h3>6.2 Variables que explican la delimitación</h3>
+<img src="data:image/png;base64,{{ fig_importancia }}" alt="Importancia de variables">
+<p class="nota">Random Forest entrenado sobre la clasificación (exactitud en validación: {{ "%.1f"|format(exactitud_rf*100) }} %).
+|SHAP| medio: contribución de cada variable a la asignación de cada ambiente. ε² (Kruskal-Wallis): proporción
+de la variabilidad de cada variable explicada por los ambientes.</p>
+{{ tabla_importancia }}
+
+<h2 class="salto">7. Estadísticas por ambiente</h2>
+<p class="nota">Valores en magnitud: media ± desvío estándar (coeficiente de variación).</p>
+{{ tabla_estadisticas }}
+<h3>Descripción de ambientes</h3>
+{% for color, texto in descripciones %}
+<div class="desc" style="border-color: {{ color }}">{{ texto }}</div>
+{% endfor %}
+
+<h2>8. Validación topológica de los polígonos</h2>
+{{ tabla_validacion }}
+
+<h2 class="salto" id="anexo">Anexo metodológico</h2>
+<div class="anexo">{{ metodologia }}</div>
+
+</body>
+</html>

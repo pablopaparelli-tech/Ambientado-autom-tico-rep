@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+salidas/
+.ipynb_checkpoints/
