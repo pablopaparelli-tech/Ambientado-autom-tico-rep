@@ -9,7 +9,7 @@ ejecutarse en **Google Colab**, con informe en HTML y PDF.
 2. Guardá un token de GitHub de solo lectura en **Secrets (🔑)** con el nombre `GITHUB_TOKEN`.
    No lo pegues en el código.
 3. Ejecutá las celdas en orden. Subí el perímetro del lote (SHP en .zip o GeoJSON), el Excel de fechas y
-   cultivos (plantilla en `plantillas/`) y, si hay, los mapas de rendimiento.
+   cultivos (plantilla: `entrada_fechas_rendimiento.xlsx`) y, si hay, los mapas de rendimiento.
 4. El notebook se detiene para que el analista revise el EDA, el número de ambientes y el resultado antes
    de generar el informe.
 
@@ -34,7 +34,7 @@ La metodología completa está en [`docs/metodologia.md`](docs/metodologia.md).
 ambientacion/        paquete Python (una etapa por módulo; flujo.py orquesta)
   plantillas/        plantilla HTML del informe
 notebooks/           notebook de Colab
-plantillas/          plantilla Excel de entrada
+entrada_fechas_rendimiento.xlsx   plantilla Excel de entrada
 docs/                metodología
 tests/               prueba de punta a punta con datos sintéticos (sin GEE)
 ```
