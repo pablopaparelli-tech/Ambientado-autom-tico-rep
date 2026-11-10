@@ -37,6 +37,11 @@ class Proyecto:
     # ------------------------------------------------------------ 0. entradas
     def cargar_entradas(self):
         c = self.cfg
+        for nombre, ruta in (("perímetro del lote", c.lote_path), ("Excel de fechas", c.excel_path)):
+            if not ruta:
+                raise FileNotFoundError(f"Falta el {nombre}: subilo en el paso 3a y volvé a ejecutar este paso.")
+            if not os.path.exists(ruta):
+                raise FileNotFoundError(f"No existe el archivo del {nombre}: {ruta}")
         self.lote, self.crs = entradas.leer_lote(c.lote_path)
         self.tabla_img_entrada, self.tabla_rend = entradas.leer_excel(c.excel_path)
         self.grilla = mod_grilla.crear_grilla(self.lote, c.resolucion_m)
