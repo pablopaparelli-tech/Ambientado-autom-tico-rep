@@ -8,7 +8,7 @@
   @page { size: A4; margin: 16mm 14mm 18mm 14mm;
           @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 8pt; color: #666; } }
   :root { --verde: #1a7f3c; --gris: #555; --borde: #d9d9d9; }
-  body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10pt; color: #222; margin: 0 auto; max-width: 1050px; padding: 0 16px; background: #fff; }
+  body { font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif; font-size: 10pt; color: #222; margin: 0 auto; max-width: 1050px; padding: 0 16px; background: #fff; }
   h1 { font-size: 17pt; color: var(--verde); margin: 18px 0 4px; }
   h2 { font-size: 13pt; color: var(--verde); border-bottom: 2px solid var(--verde); padding-bottom: 3px; margin-top: 26px; }
   h3 { font-size: 11pt; margin: 14px 0 6px; }
@@ -25,7 +25,7 @@
   .anexo { font-size: 9pt; }
   .anexo table { border-collapse: collapse; font-size: 8.5pt; }
   .anexo td, .anexo th { border: 1px solid var(--borde); padding: 3px 5px; }
-  @media (max-width: 700px) { .grilla figure { width: 100%; } .tabla { display: block; overflow-x: auto; } }
+  @media screen and (max-width: 700px) { .grilla figure { width: 100%; } .tabla { display: block; overflow-x: auto; } }
 </style>
 </head>
 <body>

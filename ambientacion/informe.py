@@ -123,7 +123,7 @@ def generar(p, carpeta):
         "tabla_estadisticas": _html_tabla(tabla_estadisticas_informe(p), index=True),
         "descripciones": [(p.colores[a], t) for a, t in sorted(p.textos.items())],
         "tabla_validacion": _html_tabla(p.validacion.assign(
-            cumple=p.validacion["cumple"].map({True: "✔", False: "✘", None: "n/d"}))),
+            cumple=p.validacion["cumple"].map({True: "Sí", False: "NO", None: "n/d"}))),
         "metodologia": _metodologia_html(),
         "cfg": p.cfg,
     }
@@ -135,7 +135,10 @@ def generar(p, carpeta):
         f.write(html)
     path_pdf = os.path.join(carpeta, "informe_ambientes.pdf")
     try:
+        import logging
         from weasyprint import HTML
+        logging.getLogger("weasyprint").setLevel(logging.ERROR)
+        logging.getLogger("fontTools").setLevel(logging.ERROR)
         HTML(string=html, base_url=carpeta).write_pdf(path_pdf)
     except Exception as e:  # noqa: BLE001
         print(f"No se pudo generar el PDF ({e}). El HTML está disponible.")
