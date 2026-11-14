@@ -3,6 +3,7 @@
 Todos los valores tienen un default razonable y se pueden sobrescribir desde
 la celda de configuración del notebook.
 """
+import os
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -13,7 +14,19 @@ class Config:
     gee_project: str = "ee-pablopaparelli"
     establecimiento: str = "Establecimiento"
     lote: str = "Lote"
-    analista: str = ""
+    analista: str = ""             # responsable técnico (aparece en portada y pie)
+    campaña: str = ""
+
+    # --- Marca / informe ----------------------------------------------------
+    empresa: str = "Solum Agrotecnología"
+    logo_path: str = field(default_factory=lambda: os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "recursos", "logo_solum.png"))
+    color_primario: str = "#42337a"   # púrpura Solum (tomado del logo)
+    color_acento: str = "#a4a13e"     # verde oliva Solum (tomado del logo)
+    contacto_web: str = ""
+    contacto_mail: str = ""
+    contacto_tel: str = ""
+    anexo_tecnico: bool = True
 
     # --- Entradas ----------------------------------------------------------
     lote_path: str = ""            # SHP, ZIP con SHP o GeoJSON del perímetro

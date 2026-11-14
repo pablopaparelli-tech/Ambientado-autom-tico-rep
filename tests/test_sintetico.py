@@ -23,7 +23,8 @@ def campo_suave(forma, sigma, rng):
 def main():
     rng = np.random.default_rng(0)
     tmp = tempfile.mkdtemp(prefix="amb_test_")
-    cfg = Config(establecimiento="Prueba", lote="Lote 1", salida_dir=os.path.join(tmp, "salidas"))
+    cfg = Config(establecimiento="Prueba", lote="Lote 1", salida_dir=os.path.join(tmp, "salidas"),
+                 analista="Ing. Agr. Ejemplo", campaña="2025/26", contacto_web="www.ejemplo.com.ar")
 
     # Lote irregular de ~120 ha en UTM 20S
     x0, y0 = 500_000, 6_200_000

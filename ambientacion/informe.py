@@ -14,8 +14,6 @@ from . import mapas
 from .variables import VARIABLES
 
 DIR = os.path.dirname(__file__)
-URL_METODOLOGIA = ("https://github.com/pablopaparelli-tech/Ambientado-autom-tico-rep/blob/"
-                   "main/docs/metodologia.md")
 
 
 def fig_a_b64(fig, dpi=150):
@@ -28,15 +26,6 @@ def fig_a_b64(fig, dpi=150):
 def _html_tabla(df, index=False, decimales=2):
     return df.to_html(index=index, float_format=lambda x: f"{x:,.{decimales}f}", border=0,
                       classes="tabla", na_rep="–")
-
-
-def _metodologia_html():
-    path = os.path.join(DIR, "..", "docs", "metodologia.md")
-    if not os.path.exists(path):
-        return ""
-    import markdown
-    with open(path, encoding="utf-8") as f:
-        return markdown.markdown(f.read(), extensions=["tables"])
 
 
 def tabla_variables(p):
@@ -70,14 +59,75 @@ def tabla_estadisticas_informe(p):
     return t
 
 
-def generar(p, carpeta):
-    os.makedirs(carpeta, exist_ok=True)
+def _md_html(nombre):
+    path = os.path.join(DIR, "..", "docs", nombre)
+    if not os.path.exists(path):
+        return ""
+    import markdown
+    with open(path, encoding="utf-8") as f:
+        return markdown.markdown(f.read(), extensions=["tables"])
+
+
+def _logo_b64(cfg):
+    if cfg.logo_path and os.path.exists(cfg.logo_path):
+        with open(cfg.logo_path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
+
+
+def _contacto(cfg):
+    return " · ".join(x for x in (cfg.contacto_web, cfg.contacto_mail, cfg.contacto_tel) if x)
+
+
+def _fecha(d):
+    return pd.Timestamp(d).strftime("%d/%m/%Y") if pd.notna(d) else "–"
+
+
+def tabla_imagenes_simple(p):
+    t = p.tabla_img[p.tabla_img["fecha_usada"].notna() & ~p.tabla_img["estado"].str.startswith("duplicada")]
+    filas = []
+    for _, r in t.iterrows():
+        nota = "" if r["dif_dias"] == 0 else f"reemplaza al {_fecha(r['fecha_solicitada'])} por nubes"
+        filas.append({"Fecha de la imagen": _fecha(r["fecha_usada"]), "Cultivo": r["cultivo"],
+                      "Campaña": r["campaña"], "Observación": nota})
+    excl = len(p.tabla_img) - len(t)
+    df = pd.DataFrame(filas)
+    html = _html_tabla(df)
+    if excl:
+        html += (f'<p class="nota">{excl} fecha(s) solicitada(s) no se usaron por no encontrarse una imagen '
+                 "sin nubes ni sombras sobre el lote (detalle en el anexo).</p>")
+    return html
+
+
+def tabla_rendimiento_simple(p):
+    if p.tabla_rend is None:
+        return None
+    t = p.tabla_rend.rename(columns={"campaña": "Campaña", "cultivo": "Cultivo"})
+    t["Rinde medio"] = p.tabla_rend.apply(lambda r: f"{r['media']:,.0f} ({r['columna']})", axis=1)
+    return _html_tabla(t[["Campaña", "Cultivo", "Rinde medio"]])
+
+
+def _figs_capas(p, principales):
+    from .lectura import SIMPLE, nombre_simple, unidad_simple
     g = p.stack.grilla
-    figs_capas = []
+    out = []
     for k in p.stack.disponibles:
-        v = VARIABLES[k]
-        fig = mapas.mapa_capa(p.stack.magnitud(k), g, p.lote, p.nombre(k), p.unidad(k), v.paleta)
-        figs_capas.append({"titulo": p.nombre(k), "img": fig_a_b64(fig)})
+        s = SIMPLE.get(k)
+        if s is None or s.principal != principales:
+            continue
+        titulo = nombre_simple(p, k)
+        fig = mapas.mapa_capa(p.stack.magnitud(k), g, p.lote, titulo, unidad_simple(p, k), VARIABLES[k].paleta)
+        epigrafe = s.epigrafe
+        if k in p.stack.excluidas:
+            epigrafe += " Sin diferencias dentro del lote: no se usó para delimitar ambientes."
+        out.append({"titulo": titulo, "epigrafe": epigrafe, "img": fig_a_b64(fig)})
+    return out
+
+
+def generar(p, carpeta):
+    from . import lectura
+    os.makedirs(carpeta, exist_ok=True)
+    cfg = p.cfg
 
     serie = None
     if p.serie_anegamiento is not None and not p.serie_anegamiento.empty:
@@ -93,42 +143,53 @@ def generar(p, carpeta):
         "fecha_solicitada": "Fecha solicitada", "fecha_usada": "Fecha utilizada", "dif_dias": "Δ días",
         "cultivo": "Cultivo", "campaña": "Campaña", "estado": "Estado"}).drop(columns=["contaminacion_pct"], errors="ignore")
 
+    fichas = lectura.fichas(p)
+    contacto = _contacto(cfg)
+    pie = " · ".join(x for x in (cfg.empresa, cfg.analista and f"Responsable: {cfg.analista}", contacto) if x)
+    anexo = bool(cfg.anexo_tecnico)
+
     ctx = {
-        "titulo": f"Delimitación de ambientes — {p.cfg.establecimiento} · {p.cfg.lote}",
+        "cfg": cfg,
+        "logo": _logo_b64(cfg),
+        "contacto": contacto,
+        "pie": pie,
         "fecha": date.today().strftime("%d/%m/%Y"),
-        "analista": p.cfg.analista,
         "sup_lote": p.lote.area.iloc[0] / 10_000,
         "k": len(p.nombres),
-        "criterio": p.criterio,
-        "url_metodologia": URL_METODOLOGIA,
-        "mapa_ambientes": fig_a_b64(mapas.mapa_ambientes(p.gdf, p.lote,
-                                                         f"Ambientes — {p.cfg.lote}")),
-        "tabla_superficies": _html_tabla(p.gdf[["ambiente_id", "ambiente", "sup_ha", "sup_pct"]].rename(
-            columns={"ambiente_id": "Id", "ambiente": "Ambiente", "sup_ha": "Superficie (ha)",
-                     "sup_pct": "% del lote"}), decimales=1),
-        "tabla_variables": _html_tabla(tabla_variables(p)),
-        "tabla_imagenes": _html_tabla(tabla_img),
-        "tabla_rendimiento": _html_tabla(p.tabla_rend.rename(columns={
-            "archivo": "Archivo", "campaña": "Campaña", "cultivo": "Cultivo", "columna": "Columna",
-            "n_puntos": "N° puntos", "media": "Media", "desvio": "Desvío", "min": "Mín", "max": "Máx",
-            "metodo": "Interpolación"})) if p.tabla_rend is not None else None,
-        "capas": figs_capas,
-        "serie_anegamiento": serie,
-        "fig_k": fig_a_b64(p.fig_k) if p.fig_k is not None else None,
-        "tabla_k": _html_tabla(p.k_df.reset_index(), decimales=3),
-        "votos": p.votos,
-        "fig_importancia": fig_a_b64(p.explic["fig"]),
-        "tabla_importancia": _html_tabla(p.explic["tabla"].drop(columns=["p_valor"], errors="ignore").rename(columns={
-            "variable": "Variable", "importancia_permutacion": "Importancia (permutación)",
-            "H_kruskal": "H Kruskal-Wallis", "epsilon2": "ε²", "shap_medio": "|SHAP| medio"}), decimales=3),
-        "exactitud_rf": p.explic["exactitud_rf"],
-        "tabla_estadisticas": _html_tabla(tabla_estadisticas_informe(p), index=True),
-        "descripciones": [(p.colores[a], t) for a, t in sorted(p.textos.items())],
-        "tabla_validacion": _html_tabla(p.validacion.assign(
-            cumple=p.validacion["cumple"].map({True: "Sí", False: "NO", None: "n/d"}))),
-        "metodologia": _metodologia_html(),
-        "cfg": p.cfg,
+        "mapa_ambientes": fig_a_b64(mapas.mapa_ambientes(p.gdf, p.lote, f"Ambientes — {cfg.lote}")),
+        "fichas": fichas,
+        "conclusiones": lectura.conclusiones(p, fichas),
+        "capas": _figs_capas(p, principales=True),
+        "tabla_imagenes_simple": tabla_imagenes_simple(p),
+        "tabla_rendimiento_simple": tabla_rendimiento_simple(p),
+        "como_se_hizo": lectura.como_se_hizo(p),
+        "anexo": anexo,
     }
+    if anexo:
+        ctx.update({
+            "tabla_variables": _html_tabla(tabla_variables(p)),
+            "fig_k": fig_a_b64(p.fig_k) if p.fig_k is not None else None,
+            "tabla_k": _html_tabla(p.k_df.reset_index(), decimales=3),
+            "votos": p.votos,
+            "fig_importancia": fig_a_b64(p.explic["fig"]),
+            "tabla_importancia": _html_tabla(p.explic["tabla"].drop(columns=["p_valor"], errors="ignore").rename(
+                columns={"variable": "Variable", "importancia_permutacion": "Importancia (permutación)",
+                         "H_kruskal": "H Kruskal-Wallis", "epsilon2": "ε²", "shap_medio": "|SHAP| medio"}),
+                decimales=3),
+            "exactitud_rf": p.explic["exactitud_rf"],
+            "tabla_estadisticas": _html_tabla(tabla_estadisticas_informe(p), index=True),
+            "capas_anexo": _figs_capas(p, principales=False),
+            "serie_anegamiento": serie,
+            "tabla_imagenes": _html_tabla(tabla_img),
+            "tabla_rendimiento": _html_tabla(p.tabla_rend.rename(columns={
+                "archivo": "Archivo", "campaña": "Campaña", "cultivo": "Cultivo", "columna": "Columna",
+                "n_puntos": "N° puntos", "media": "Media", "desvio": "Desvío", "min": "Mín", "max": "Máx",
+                "metodo": "Interpolación"})) if p.tabla_rend is not None else None,
+            "tabla_validacion": _html_tabla(p.validacion.assign(
+                cumple=p.validacion["cumple"].map({True: "Sí", False: "NO", None: "n/d"}))),
+            "guia": _md_html("guia_interpretacion.md"),
+            "metodologia": _md_html("metodologia.md"),
+        })
     env = Environment(loader=FileSystemLoader(os.path.join(DIR, "plantillas")),
                       autoescape=select_autoescape(enabled_extensions=()))
     html = env.get_template("informe.html").render(**ctx)

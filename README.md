@@ -26,7 +26,16 @@ ejecutarse en **Google Colab**, con informe en HTML y PDF.
 | Rendimiento relativo (opcional) | Monitor de rendimiento | rojo → verde |
 | Ambientes | — | verde (mejor) → amarillo → rojo (peor) |
 
-La metodología completa está en [`docs/metodologia.md`](docs/metodologia.md).
+La metodología completa está en [`docs/metodologia.md`](docs/metodologia.md) y la guía para interpretar los
+resultados técnicos (VIF, Kruskal-Wallis, número de ambientes, Random Forest y SHAP) en
+[`docs/guia_interpretacion.md`](docs/guia_interpretacion.md).
+
+## Informe
+
+El informe (HTML y PDF) lleva la marca de Solum (logo en `recursos/logo_solum.png`, colores púrpura
+`#42337a` y verde oliva `#a4a13e`) y está escrito para productores y agrónomos: resumen con mapa y
+conclusiones, una ficha por ambiente en lenguaje llano, mapas explicados e imágenes usadas. El anexo
+técnico (opcional) reúne la estadística, la validación y la metodología.
 
 ## Estructura
 
@@ -35,7 +44,8 @@ ambientacion/        paquete Python (una etapa por módulo; flujo.py orquesta)
   plantillas/        plantilla HTML del informe
 notebooks/           notebook de Colab
 entrada_fechas_rendimiento.xlsx   plantilla Excel de entrada
-docs/                metodología
+docs/                metodología y guía de interpretación
+recursos/            logo de Solum
 tests/               prueba de punta a punta con datos sintéticos (sin GEE)
 ```
 
