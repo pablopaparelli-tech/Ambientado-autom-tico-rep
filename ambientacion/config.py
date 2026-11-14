@@ -54,6 +54,9 @@ class Config:
 
     # --- Normalización / clustering ---------------------------------------
     percentiles_norm: tuple = (2, 98)
+    # Variabilidad mínima (rango p2-p98 en unidades de la variable) para entrar al análisis.
+    # Debajo de este rango la variable se informa pero se excluye del EDA y del clustering.
+    rango_min: dict = field(default_factory=lambda: {"anegamiento": 1.0})
     filtro_mediana_px: int = 3
     k_min: int = 2
     k_max: int = 6

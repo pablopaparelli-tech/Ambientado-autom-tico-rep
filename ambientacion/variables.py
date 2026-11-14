@@ -84,23 +84,49 @@ class Stack:
         self.grilla = grilla
         self.cfg = cfg
         self.capas = {}          # magnitudes y auxiliares
-        self.norm = {}           # normalizadas 0-1 (sólo variables del catálogo)
+        self.norm = {}           # normalizadas 0-1 (variables con variabilidad en el lote)
+        self.excluidas = {}      # clave -> motivo (sin variabilidad)
 
     def agregar(self, capas: dict):
         for k, v in capas.items():
             self.capas[k] = np.asarray(v, dtype="float32")
 
+    def sin_variabilidad(self, clave):
+        """Motivo de exclusión si la variable es (casi) constante en el lote, o None."""
+        vals = self.capas[clave][self.grilla.mascara]
+        vals = vals[np.isfinite(vals)]
+        lo, hi = np.percentile(vals, self.cfg.percentiles_norm)
+        rango = hi - lo
+        minimo = self.cfg.rango_min.get(clave, 0.0)
+        tol = max(1e-9, 1e-6 * abs(float(np.median(vals))))
+        if rango <= tol or np.std(vals) <= tol:
+            return f"sin variabilidad en el lote (valor ≈ {np.median(vals):.2f} {VARIABLES[clave].unidad})"
+        if rango < minimo:
+            return (f"variabilidad insuficiente (rango p{self.cfg.percentiles_norm[0]}-"
+                    f"p{self.cfg.percentiles_norm[1]} = {rango:.2f} < {minimo} {VARIABLES[clave].unidad})")
+        return None
+
     def normalizar_todo(self):
-        self.norm = {}
+        self.norm, self.excluidas = {}, {}
         for clave in VARIABLES:
             if clave in self.capas and np.isfinite(self.capas[clave][self.grilla.mascara]).any():
+                motivo = self.sin_variabilidad(clave)
+                if motivo:
+                    self.excluidas[clave] = motivo
+                    continue
                 self.norm[clave] = normalizar(self.capas[clave], self.grilla.mascara,
                                               self.cfg.percentiles_norm)
         return list(self.norm)
 
     @property
-    def disponibles(self):
+    def analizables(self):
+        """Variables con variabilidad: entran al EDA y al clustering."""
         return list(self.norm)
+
+    @property
+    def disponibles(self):
+        """Todas las variables con dato (incluye excluidas): mapas y estadísticas."""
+        return [k for k in VARIABLES if k in self.norm or k in self.excluidas]
 
     def magnitud(self, clave):
         v = VARIABLES[clave]

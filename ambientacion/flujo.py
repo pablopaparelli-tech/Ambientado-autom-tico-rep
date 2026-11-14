@@ -105,7 +105,9 @@ class Proyecto:
     def normalizar(self):
         disp = self.stack.normalizar_todo()
         self.claves = list(disp)
-        print("Variables disponibles:", ", ".join(disp))
+        print("Variables para el análisis:", ", ".join(disp))
+        for k, motivo in self.stack.excluidas.items():
+            print(f"⚠ Excluida: {VARIABLES[k].nombre} — {motivo}. Se informa en mapas y estadísticas.")
         return disp
 
     # ---------------------------------------------------------------- 6. EDA
@@ -114,7 +116,14 @@ class Proyecto:
 
     # ------------------------------------------------------- 7. clustering
     def evaluar_k(self, claves=None):
-        self.claves = list(claves or self.claves)
+        claves = list(claves or self.claves)
+        fuera = [k for k in claves if k not in self.stack.norm]
+        for k in fuera:
+            motivo = self.stack.excluidas.get(k, "no existe")
+            print(f"⚠ {k} no entra al clustering: {motivo}.")
+        self.claves = [k for k in claves if k in self.stack.norm]
+        if not self.claves:
+            raise ValueError("No quedan variables con variabilidad para el clustering.")
         self.datos = clustering.preparar(self.stack, self.claves, self.cfg)
         self.k_df, self.votos, self.k_sugerido = clustering.evaluar_k(self.datos, self.cfg)
         self.fig_k = clustering.grafico_k(self.k_df, self.votos, self.k_sugerido)

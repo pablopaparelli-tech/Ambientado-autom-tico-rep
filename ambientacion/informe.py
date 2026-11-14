@@ -44,7 +44,8 @@ def tabla_variables(p):
     for k in p.stack.disponibles:
         v = VARIABLES[k]
         filas.append({"Variable": p.nombre(k), "Fuente": v.fuente, "Resolución nativa": v.res_nativa,
-                      "Unidad (mapa)": p.unidad(k), "Usada en clustering": "Sí" if k in p.claves else "No",
+                      "Unidad (mapa)": p.unidad(k), "Usada en clustering": "Sí" if k in p.claves else
+                      ("No (" + p.stack.excluidas[k] + ")" if k in p.stack.excluidas else "No"),
                       "Descripción": v.descripcion})
     return pd.DataFrame(filas)
 
@@ -52,7 +53,8 @@ def tabla_variables(p):
 def tabla_estadisticas_informe(p):
     """Variables en filas, ambientes en columnas: media ± desvío (CV %)."""
     df = p.est_largo.copy()
-    df["valor"] = df.apply(lambda r: f"{r['media']:.2f} ± {r['desvío']:.2f} ({r['CV %']:.0f} %)", axis=1)
+    df["valor"] = df.apply(lambda r: f"{r['media']:.2f} ± {r['desvío']:.2f} (" +
+                           (f"{r['CV %']:.0f} %" if pd.notna(r["CV %"]) else "–") + ")", axis=1)
     df["Variable"] = df["variable"] + " [" + df["unidad"] + "]"
     orden_vars = list(dict.fromkeys(df["Variable"]))
     df["Ambiente"] = df["ambiente_id"].astype(str) + " · " + df["ambiente"]

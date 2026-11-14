@@ -52,7 +52,8 @@ def main():
     p.stack.agregar({
         "dem": 35 + 1.5 * relieve,
         "tpi": 0.8 * relieve + 0.1 * campo_suave(forma, 2, rng),
-        "anegamiento": np.clip(20 - 15 * relieve, 0, 100),
+        "anegamiento": (np.zeros(forma) if os.environ.get("ANEGAMIENTO_CONSTANTE")
+                        else np.clip(20 - 15 * relieve, 0, 100)),
     })
     p.tabla_img = pd.DataFrame({"fecha_solicitada": fechas.date, "fecha_usada": fechas.date, "dif_dias": 0,
                                 "cultivo": ["Soja", "Soja", "Maíz"], "campaña": ["22/23", "22/23", "23/24"],
@@ -75,6 +76,9 @@ def main():
 
     disp = p.normalizar()
     assert "rend_rel" in disp and "tpi" in disp
+    if os.environ.get("ANEGAMIENTO_CONSTANTE"):
+        assert "anegamiento" not in disp and "anegamiento" in p.stack.excluidas
+        assert "anegamiento" in p.stack.disponibles
     res_eda = p.eda()
     print(res_eda["resumen"])
     print("VIF:\n", res_eda["vif"])

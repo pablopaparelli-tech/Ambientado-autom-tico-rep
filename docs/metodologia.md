@@ -58,6 +58,11 @@ rendimiento relativo. Si hay rendimiento, es el criterio para ordenar los ambien
 ## 6. Normalización y análisis exploratorio
 
 Cada variable se normaliza dentro del lote con un min-max robusto (percentiles 2–98, recortado a 0–1).
+Las variables **sin variabilidad en el lote** (rango p2–p98 nulo; para la frecuencia de anegamiento,
+menor a 1 punto porcentual, es decir, todo el lote con el mismo valor, típicamente 0 %) se excluyen del
+análisis exploratorio y del clustering, porque no aportan información para separar ambientes y vuelven
+indefinidas la correlación, el VIF y las pruebas estadísticas. Se informan igual en los mapas y en las
+estadísticas por ambiente, indicando el motivo de la exclusión.
 El análisis exploratorio incluye estadísticos descriptivos, histogramas, correlación de Spearman y factor
 de inflación de la varianza (VIF), para que el analista decida qué variables entran al clustering y evite
 redundancias.

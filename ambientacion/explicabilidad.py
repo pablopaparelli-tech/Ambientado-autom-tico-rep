@@ -32,7 +32,10 @@ def explicar(datos, etiquetas, colores, nombres, cfg, muestra=20000, muestra_sha
     k = len(np.unique(y))
     for c in datos.claves:
         grupos = [X.loc[y == g, c] for g in np.unique(y)]
-        h, p = kruskal(*grupos)
+        try:
+            h, p = kruskal(*grupos)
+        except ValueError:  # todos los valores iguales
+            h, p = 0.0, 1.0
         tabla.loc[c, "H_kruskal"] = h
         tabla.loc[c, "epsilon2"] = (h - k + 1) / (len(y) - k)
         tabla.loc[c, "p_valor"] = p

@@ -7,7 +7,7 @@ from .variables import VARIABLES, PALETAS
 
 
 def tabla_pixeles(stack, claves=None, normalizadas=True) -> pd.DataFrame:
-    claves = claves or stack.disponibles
+    claves = claves or stack.analizables
     m = stack.grilla.mascara
     fuente = stack.norm if normalizadas else {k: stack.magnitud(k) for k in claves}
     return pd.DataFrame({k: fuente[k][m] for k in claves})
@@ -22,12 +22,14 @@ def resumen(stack) -> pd.DataFrame:
         filas.append({"variable": v.nombre, "unidad": v.unidad, "media": a.mean(), "desvío": a.std(),
                       "CV %": 100 * a.std() / abs(a.mean()) if a.mean() else np.nan,
                       "mín": a.min(), "p50": np.median(a), "máx": a.max(),
-                      "faltantes %": 100 * (1 - a.size / stack.grilla.mascara.sum())})
+                      "faltantes %": 100 * (1 - a.size / stack.grilla.mascara.sum()),
+                      "en análisis": "No: " + stack.excluidas[k] if k in stack.excluidas else "Sí"})
     return pd.DataFrame(filas).set_index("variable").round(3)
 
 
 def vif(df: pd.DataFrame) -> pd.Series:
-    """VIF a partir de la inversa de la matriz de correlación."""
+    """VIF a partir de la inversa de la matriz de correlación (ignora columnas constantes)."""
+    df = df.loc[:, df.std() > 0]
     c = df.dropna().corr().to_numpy()
     try:
         inv = np.linalg.inv(c)
@@ -48,7 +50,7 @@ def pares_correlacionados(corr: pd.DataFrame, umbral=0.85):
 
 def graficar(stack, claves=None):
     """Devuelve figuras: mapas normalizados, histogramas y correlación."""
-    claves = claves or stack.disponibles
+    claves = claves or stack.analizables
     figs = {}
     n = len(claves)
     ncol = 4
@@ -91,7 +93,7 @@ def graficar(stack, claves=None):
 
 
 def ejecutar(stack, claves=None, umbral_corr=0.85):
-    claves = claves or stack.disponibles
+    claves = claves or stack.analizables
     figs, corr = graficar(stack, claves)
     v = vif(tabla_pixeles(stack, claves))
     pares = pares_correlacionados(corr, umbral_corr)

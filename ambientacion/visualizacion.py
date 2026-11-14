@@ -42,11 +42,13 @@ def visor(stack, lote_utm, ambientes=None, normalizadas=False):
         attr="Esri World Imagery", name="Satélite").add_to(m)
     folium.TileLayer("OpenStreetMap", name="OSM").add_to(m)
     primero = True
-    for k in stack.disponibles:
+    for k in (stack.analizables if normalizadas else stack.disponibles):
         v = VARIABLES[k]
         arr = stack.norm[k] if normalizadas else stack.magnitud(k)
         vals = arr[stack.grilla.mascara & np.isfinite(arr)]
         vmin, vmax = (0, 1) if normalizadas else np.percentile(vals, (2, 98))
+        if vmax - vmin < 1e-9:
+            vmin, vmax = vmin - 0.5, vmax + 0.5
         url, bounds = _a_png_4326(arr, stack.grilla, PALETAS[v.paleta], vmin, vmax)
         nombre = f"{v.nombre} [{'0-1' if normalizadas else v.unidad}] ({vmin:.2f} – {vmax:.2f})"
         folium.raster_layers.ImageOverlay(url, bounds, name=nombre, show=primero).add_to(m)

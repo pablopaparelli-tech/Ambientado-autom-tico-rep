@@ -43,6 +43,8 @@ def mapa_capa(arr, grilla, lote_utm, titulo, unidad, paleta, ax=None, percentile
         fig, ax = plt.subplots(figsize=(7, 6))
     vals = arr[grilla.mascara & np.isfinite(arr)]
     vmin, vmax = np.percentile(vals, percentiles) if vals.size else (0, 1)
+    if vmax - vmin < 1e-9:  # capa constante (p. ej. sin anegamiento)
+        vmin, vmax = vmin - 0.5, vmax + 0.5
     cmap = PALETAS[paleta] if isinstance(paleta, str) else paleta
     im = ax.imshow(np.where(grilla.mascara_borde, arr, np.nan), cmap=cmap, vmin=vmin, vmax=vmax,
                    extent=grilla.extent, interpolation="nearest")
