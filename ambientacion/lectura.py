@@ -206,6 +206,11 @@ def conclusiones(p, fichas_):
     return c
 
 
+def _num(x):
+    """Número con coma decimal (estilo castellano)."""
+    return f"{x:g}".replace(".", ",")
+
+
 def como_se_hizo(p):
     k = len(p.nombres)
     fuentes = ["imágenes satelitales Sentinel-2 de las fechas y cultivos indicados"]
@@ -214,6 +219,6 @@ def como_se_hizo(p):
     return (f"Se combinaron {', '.join(fuentes)}, el relieve del terreno y la historia de anegamiento del "
             "lote desde 1990 (satélites Landsat). Con esa información se agruparon automáticamente las zonas "
             f"del lote que se comportan de manera parecida, dando como resultado {k} ambientes. Cada ambiente "
-            "se ordenó según su potencial productivo y se dibujó como un polígono suavizado, sin manchas "
-            f"menores a {p.cfg.umm_ha:g} ha, listo para usar en la planificación. El detalle técnico se "
-            "encuentra en el anexo.")
+            "se ordenó según su potencial productivo y se delimitó como un polígono suavizado, sin áreas "
+            f"menores a {_num(p.cfg.umm_ha)} ha, listo para usar en la planificación."
+            + (" El detalle técnico se encuentra en el anexo." if p.cfg.anexo_tecnico else ""))
